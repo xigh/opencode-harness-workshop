@@ -1,0 +1,55 @@
+[
+  {
+    "question": "Quel port utiliser pour le VPN ?",
+    "source": "confluence",
+    "mot_cle": "51820"
+  },
+  {
+    "question": "Que faire si Qdrant de l'assistant documentaire redémarre en boucle avec le code 137 ?",
+    "source": "confluence",
+    "mot_cle": "suspendre"
+  },
+  {
+    "question": "Combien de temps les sauvegardes quotidiennes sont-elles gardées ?",
+    "source": "confluence",
+    "mot_cle": "30 jours"
+  },
+  {
+    "question": "Qui avait l'astreinte la semaine du 10 novembre ?",
+    "source": "teams",
+    "mot_cle": "Camille"
+  },
+  {
+    "question": "Pourquoi l'assistant documentaire ne trouve-t-il pas les délibérations de 2019 ?",
+    "source": "teams",
+    "mot_cle": "2021"
+  },
+  {
+    "question": "Quand faut-il demander le renouvellement d'un certificat ?",
+    "source": "confluence",
+    "mot_cle": "30 jours"
+  },
+  {
+    "question": "Quels comptes de service existent et qui les détient ?",
+    "source": "aucune",
+    "mot_cle": [
+      "ne sais pas",
+      "ne le sais pas",
+      "n'en sais rien",
+      "je ne peux",
+      "je n'ai pas trouvé",
+      "aucun extrait",
+      "aucun document",
+      "aucune information",
+      "pas dans les extraits",
+      "pas dans les documents",
+      "ne contient pas la réponse",
+      "ne trouve pas la réponse"
+    ]
+  },
+  {
+    "question": "Combien de caractères au minimum pour un mot de passe nominatif ?",
+    "source": ["site", "confluence"],
+    "mot_cle": "14"
+  }
+]

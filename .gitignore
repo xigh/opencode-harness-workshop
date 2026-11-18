@@ -1,0 +1,14 @@
+# Produits par les étapes : journaux, instantanés, diffs, traces
+journal/*
+!journal/prompts/
+!journal/prompts-maquette/
+projet/traces/
+maquette/donnees/
+maquette/index.json
+# Corpus : vos PDF restent chez vous
+corpus/*
+!corpus/README.md
+.venv/
+__pycache__/
+.opencode/
+.DS_Store
