@@ -19,6 +19,8 @@ Un atelier pas à pas : on demande à OpenCode, branché sur un modèle local, d
 | `essais/` | deux essais écrits à côté du code d'OpenCode, sans le modifier | Claude |
 | `etape.sh`, `etape-maquette.sh` | lancent une étape : la consigne, OpenCode, la sortie complète, l'instantané et le diff | Claude |
 
+La consigne de l'étape 01 et `projet/AGENTS.md` ont été précisés après l'atelier : la configuration du moteur d'inférence et la clé d'API passent par des variables d'environnement (`LLM_URL`, `LLM_MODELE`, `LLM_CLE`). Le `projet/etape1_appel.py` publié vient de la version précédente : il lit déjà l'adresse et le modèle dans l'environnement, pas encore la clé. Relancer l'étape 01 le régénère.
+
 Le code de `projet/` et de `maquette/` est tel qu'OpenCode l'a écrit, à une exception près : les noms propres du contexte d'origine ont été remplacés par des noms neutres (« l'assistant documentaire », « l'équipe infrastructure », l'application « docs »).
 
 ## Prérequis
