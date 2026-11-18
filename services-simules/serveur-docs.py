@@ -8,6 +8,14 @@ Imite, sur un seul port, la forme de trois sources documentaires courantes :
   - Microsoft Graph pour Teams : /graph/v1.0/me/joinedTeams, /graph/v1.0/teams/<id>/channels,
     /graph/v1.0/teams/<id>/channels/<id>/messages (pagination @odata.nextLink), .../messages/<id>/replies.
     Jeton : « Authorization: Bearer jeton-graph-demo ».
+  - Confluence Cloud, API v2 par la passerelle d'Atlassian (jeton d'API à portées) :
+    /ex/confluence/<cloudId>/wiki/api/v2/spaces, .../spaces/<id>/pages?body-format=storage (pagination par curseur,
+    `_links.next` et en-tête Link, chemins relatifs AU SITE : sans le préfixe /ex/confluence/<cloudId>),
+    .../pages/<id>, .../pages/<id>/permissions?operation=read (permissions DIRECTES seulement),
+    .../pages/<id>/ancestors, .../pages/<id>/restriction-state. Authentification Basic :
+    « formation@exemple-etablissement.fr » et le jeton « jeton-confluence-cloud-demo ». Le compte d'ingestion de la
+    démo est dans le groupe « secu » : il voit les pages restreintes, et une page sans restriction propre rangée sous une
+    page restreinte (204, sous 201) hérite de sa restriction.
   - Site « base de connaissance » public : /kb/robots.txt, /kb/sitemap.xml, /kb/articles/<slug>.html (sans jeton).
 Tout le contenu est FICTIF, écrit pour la formation. Pièges voulus :
   - une page Confluence restreinte au groupe « secu » ;
@@ -18,6 +26,7 @@ Usage : python3 serveur-docs.py [port] [port annoncé]   (défaut 8910 ; le port
 """
 import json, re, sys
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+import base64
 from urllib.parse import urlparse, parse_qs, quote
 
 JETON_CONFLUENCE = 'jeton-confluence-demo'
@@ -82,6 +91,49 @@ def page_json(p, expand):
 
 def pages_visibles(groupes):
     return [p for p in PAGES if not p['restreint'] or p['restreint'] in groupes]
+
+
+# ------------------------------------------------------------------ Confluence Cloud (API v2, passerelle)
+CLOUD_ID = '7c1e5b2a-0d4f-4e8a-9b3c-2f6d8a1e4c90'
+CLOUD_COMPTE = 'formation@exemple-etablissement.fr'
+CLOUD_JETON = 'jeton-confluence-cloud-demo'
+CLOUD_SITE = 'https://exemple-etablissement.atlassian.net/wiki'  # le site lui-même : un jeton à portées n'y passe pas
+CLOUD_GROUPES = {'secu': 'a3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d'}  # nom -> identifiant de groupe
+CLOUD_ESPACES = {'INFRA': '98305', 'SECU': '98306'}
+# Une page de plus, visible seulement dans la vue Cloud : sans restriction propre, sous la page restreinte 201.
+PAGE_204 = P(204, 'SECU', 'Comptes de service : rotation des secrets', 3, '2026-11-05T09:30:00.000+01:00',
+             '<p>Les secrets des comptes de service tournent tous les 90 jours. svc-docs-ingest : prochaine rotation le 3 février 2027, par l\'équipe sécurité.</p>'
+             '<p>Procédure : générer le nouveau secret dans Vault, mettre à jour le déploiement, révoquer l\'ancien après 24 h.</p>',
+             parent='201')
+
+
+def cloud_pages():
+    return PAGES + [PAGE_204]
+
+
+def cloud_page_json(p, corps):
+    d = {'id': p['id'], 'status': 'current', 'title': p['title'], 'spaceId': CLOUD_ESPACES[p['espace']],
+         'parentId': p['parent'], 'parentType': 'page' if p['parent'] else None, 'authorId': '712020:demo-auteur',
+         'createdAt': p['quand'], 'version': {'number': p['version'], 'createdAt': p['quand'], 'minorEdit': False},
+         '_links': {'webui': f"/spaces/{p['espace']}/pages/{p['id']}/{quote(p['title'].replace(' ', '+'))}",
+                    'tinyui': f"/x/{p['id']}"}}
+    if corps:
+        d['body'] = {'storage': {'value': p['corps'], 'representation': 'storage'}}
+    return d
+
+
+def cloud_tranche(elements, q, chemin):
+    """Pagination par curseur (ici : l'indice du premier élément, encodé). Renvoie le corps et l'en-tête Link."""
+    lim = min(int(q.get('limit', 25)), 2)  # petite page pour obliger à paginer
+    debut = int(base64.urlsafe_b64decode(q['cursor']).decode()) if q.get('cursor') else 0
+    corps = {'results': elements[debut:debut + lim], '_links': {'base': CLOUD_SITE}}
+    lien = None
+    if debut + lim < len(elements):
+        curseur = base64.urlsafe_b64encode(str(debut + lim).encode()).decode()
+        suite = '&'.join(f'{k}={quote(v)}' for k, v in (q | {'cursor': curseur, 'limit': str(lim)}).items())
+        corps['_links']['next'] = f'/wiki/api/v2{chemin}?{suite}'
+        lien = f'</wiki/api/v2{chemin}?{suite}>; rel="next", <{CLOUD_SITE}>; rel="base"'
+    return corps, lien
 
 
 # ------------------------------------------------------------------ Teams (Graph)
@@ -157,16 +209,66 @@ class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
 
-    def envoyer(self, code, corps, type_='application/json'):
+    def envoyer(self, code, corps, type_='application/json', lien=None):
         b = (json.dumps(corps, ensure_ascii=False) if not isinstance(corps, str) else corps).encode()
         self.send_response(code); self.send_header('Content-Type', type_ + '; charset=utf-8'); self.send_header('Content-Length', str(len(b)))
+        if lien:
+            self.send_header('Link', lien)
         self.end_headers(); self.wfile.write(b)
+
+    def basic(self, compte, jeton):
+        attendu = 'Basic ' + base64.b64encode(f'{compte}:{jeton}'.encode()).decode()
+        return self.headers.get('Authorization', '') == attendu
+
+    def cloud(self, c, q):
+        prefixe = f'/ex/confluence/{CLOUD_ID}/wiki/api/v2'
+        if not c.startswith(f'/ex/confluence/{CLOUD_ID}/'):
+            return self.envoyer(404, {'errors': [{'status': 404, 'code': 'NOT_FOUND', 'title': 'cloudId inconnu'}]})
+        if not self.basic(CLOUD_COMPTE, CLOUD_JETON):
+            return self.envoyer(401, {'code': 401, 'message': 'Unauthorized; scope does not match'})
+        if not c.startswith(prefixe):
+            return self.envoyer(404, {'errors': [{'status': 404, 'code': 'NOT_FOUND', 'title': 'route non simulée : ' + c}]})
+        c = c[len(prefixe):]
+        ids_espaces = {v: k for k, v in CLOUD_ESPACES.items()}
+        if c == '/spaces':
+            espaces = [{'id': CLOUD_ESPACES[e['key']], 'key': e['key'], 'name': e['name'], 'type': e['type'], 'status': 'current'} for e in ESPACES]
+            corps, lien = cloud_tranche(espaces, q, c)
+            return self.envoyer(200, corps, lien=lien)
+        m = re.match(r'/spaces/(\d+)/pages$', c)
+        if m:
+            if m.group(1) not in ids_espaces:
+                return self.envoyer(404, {'errors': [{'status': 404, 'code': 'NOT_FOUND', 'title': 'espace introuvable'}]})
+            ps = [cloud_page_json(p, q.get('body-format') == 'storage') for p in cloud_pages() if p['espace'] == ids_espaces[m.group(1)]]
+            corps, lien = cloud_tranche(ps, q, c)
+            return self.envoyer(200, corps, lien=lien)
+        m = re.match(r'/pages/(\d+)(/permissions|/ancestors|/restriction-state)?$', c)
+        if m:
+            p = next((p for p in cloud_pages() if p['id'] == m.group(1)), None)
+            if not p:
+                return self.envoyer(404, {'errors': [{'status': 404, 'code': 'NOT_FOUND', 'title': 'page introuvable'}]})
+            if m.group(2) == '/permissions':
+                directes = [{'operation': 'read', 'principal': {'principalType': 'group', 'principalId': CLOUD_GROUPES[p['restreint']]}}] if p['restreint'] else []
+                if q.get('operation') not in (None, 'read'):
+                    directes = []
+                return self.envoyer(200, {'results': directes, '_links': {'base': CLOUD_SITE}})
+            if m.group(2) == '/ancestors':
+                chaine, x = [], p
+                while x['parent']:
+                    x = next(y for y in cloud_pages() if y['id'] == x['parent'])
+                    chaine.insert(0, {'id': x['id'], 'type': 'page'})
+                return self.envoyer(200, {'results': chaine})
+            if m.group(2) == '/restriction-state':
+                return self.envoyer(200, {'state': 'VIEW_RESTRICTED' if p['restreint'] else 'OPEN'})
+            return self.envoyer(200, cloud_page_json(p, q.get('body-format') == 'storage') | {'_links': {'base': CLOUD_SITE}})
+        return self.envoyer(404, {'errors': [{'status': 404, 'code': 'NOT_FOUND', 'title': 'route non simulée : ' + c}]})
 
     def jeton(self, attendu):
         return self.headers.get('Authorization', '') == f'Bearer {attendu}'
 
     def do_GET(self):
         u = urlparse(self.path); q = {k: v[0] for k, v in parse_qs(u.query).items()}; c = u.path
+        if c.startswith('/ex/confluence/'):
+            return self.cloud(c, q)
         if c.startswith('/confluence/'):
             if not self.jeton(JETON_CONFLUENCE):
                 return self.envoyer(401, {'statusCode': 401, 'message': 'This request requires authentication'})

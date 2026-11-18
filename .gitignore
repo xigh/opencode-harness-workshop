@@ -12,3 +12,4 @@ corpus/*
 __pycache__/
 .opencode/
 .DS_Store
+services-simules/pseudo-qdrant-donnees/

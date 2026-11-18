@@ -14,4 +14,4 @@ Un assistant qui répond aux questions de l'équipe à partir de trois sources :
 - Chaque document garde sa source, son adresse, sa date de mise à jour et ses droits de lecture, de l'ingestion jusqu'à la réponse.
 - Un fichier par notion, des fonctions courtes, pas de classes inutiles.
 - Après chaque modification, lancer le programme pour vérifier qu'il marche, et montrer la sortie.
-- Ne jamais écrire en dehors de ce dossier.
+- Ne jamais écrire en dehors de ce dossier. Ne rien lire en dehors du dépôt (pas de `~/.config`, pas de fichiers de clés, pas d'autres projets) : les adresses et les clés arrivent par les variables d'environnement, déjà définies au lancement. Si un service ne répond pas, le dire et s'arrêter, sans le chercher ailleurs sur la machine.

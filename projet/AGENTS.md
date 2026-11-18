@@ -9,4 +9,4 @@ Ce dépôt sert à une formation (équipe infrastructure). Le code doit se lire 
 - Chaque étape du harnais est visible : le programme affiche (ou écrit dans un journal) le JSON exact envoyé au modèle et le JSON exact reçu.
 - Un fichier par notion, des fonctions courtes, pas de classes inutiles.
 - Après chaque modification, lancer le programme pour vérifier qu'il marche, et montrer la sortie.
-- Ne jamais écrire en dehors de ce dossier.
+- Ne jamais écrire en dehors de ce dossier. Ne rien lire en dehors du dépôt (pas de `~/.config`, pas de fichiers de clés, pas d'autres projets) : les adresses et les clés arrivent par les variables d'environnement, déjà définies au lancement. Si un service ne répond pas, le dire et s'arrêter, sans le chercher ailleurs sur la machine.
