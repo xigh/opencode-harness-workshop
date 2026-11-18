@@ -19,10 +19,10 @@ Un atelier pas à pas : on demande à OpenCode, branché sur un modèle local, d
 | `essais/` | deux essais écrits à côté du code d'OpenCode, sans le modifier | Claude |
 | `etape.sh`, `etape-maquette.sh` | lancent une étape : la consigne, OpenCode, la sortie complète, l'instantané et le diff | Claude |
 
-Deux consignes ont été précisées après l'atelier ; le code publié vient de leur version précédente, et relancer l'étape le régénère :
+Deux consignes ont été précisées après l'atelier ; le code publié vient de leur version précédente ; relancer l'étape le régénère :
 
 - étape 01 (et `projet/AGENTS.md`) : la configuration du moteur d'inférence et la clé d'API passent par des variables d'environnement (`LLM_URL`, `LLM_MODELE`, `LLM_CLE`). Le `projet/etape1_appel.py` publié lit déjà l'adresse et le modèle dans l'environnement, pas encore la clé ;
-- étape 03 : après la demande d'appel d'outil (dont le `content` est vide), le harnais renvoie au modèle un résultat « outil non branché : état inconnu ». L'échange se boucle, et l'on voit si le modèle avoue ne pas savoir au lieu d'inventer. Le `projet/etape3_outil.py` publié s'arrête encore à la demande d'appel.
+- étape 03 : après la demande d'appel d'outil (dont le `content` est vide), le harnais renvoie au modèle un résultat « outil non branché : état inconnu ». L'échange se boucle : on voit si le modèle avoue ne pas savoir au lieu d'inventer. Le `projet/etape3_outil.py` publié s'arrête encore à la demande d'appel.
 
 Le code de `projet/` et de `maquette/` est tel qu'OpenCode l'a écrit, à une exception près : les noms propres du contexte d'origine ont été remplacés par des noms neutres (« l'assistant documentaire », « l'équipe infrastructure », l'application « docs »).
 
