@@ -23,6 +23,7 @@ Chaque fichier est une consigne donnée telle quelle à OpenCode, dans `projet/`
 ## Ce qu'il faut avoir pour chaque étape
 
 - Toutes : un serveur de modèle compatible OpenAI (`LLM_URL`, `LLM_MODELE`, `LLM_CLE`).
+- 06 : `pdftotext` (sous Windows : `../procedures/pdftotext-windows.md`).
 - 06 à 10 et 19 : un serveur d'embedding (`EMBED_URL`, `EMBED_MODELE`, `EMBED_CLE`), Qdrant ou le pseudo-Qdrant (`QDRANT_URL`, `QDRANT_CLE`, `QDRANT_COLLECTION`), un reranker ou rien (`RERANK_URL`, `RERANK_CLE`), des PDF dans `../corpus/pdf/`.
 - 09 et 10 : un environnement `.venv` avec LangGraph et LlamaIndex (les seules étapes hors bibliothèque standard).
 - 11 et 12 : `python3 services-simules/serveur.py` (`SERVICES_URL`).

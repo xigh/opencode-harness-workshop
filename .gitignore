@@ -3,6 +3,7 @@ journal/*
 !journal/prompts/
 !journal/prompts-maquette/
 !journal/prompts-etat/
+!journal/procedures/
 projet/traces/
 maquette/donnees/
 maquette/index.json

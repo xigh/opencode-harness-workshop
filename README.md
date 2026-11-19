@@ -62,7 +62,7 @@ py -3 services-simules\serveur.py
 $env:QDRANT_URL = "http://127.0.0.1:8803"
 ```
 
-Détails et précautions (politique d'exécution, encodage) : `journal/prompts-etat/README.md`.
+Détails et précautions (politique d'exécution, encodage) : `journal/prompts-etat/README.md`. Pour l'étape 06, installer `pdftotext` : `journal/procedures/pdftotext-windows.md`.
 
 Les adresses se règlent par variables d'environnement (`LLM_URL`, `EMBED_URL`, `QDRANT_URL`, `RERANK_URL`, `SERVICES_URL`…), avec des valeurs locales par défaut : voir `projet/AGENTS.md` et `maquette/AGENTS.md`.
 
