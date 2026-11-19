@@ -21,6 +21,26 @@ cp projet/.env.example projet/.env   # le formateur remplit .env
 
 `etape-etat.sh` garde la sortie complète d'OpenCode et une copie de `ETAT.md` après chaque étape (`journal/etat-<dossier>/`). `OPENCODE=` choisit le binaire, `OPENCODE_HOME=` donne à OpenCode un dossier personnel vide.
 
+## Sous Windows (PowerShell)
+
+`etape-etat.ps1` fait la même chose que `etape-etat.sh`, pour Windows PowerShell 5.1 et PowerShell 7 :
+
+```powershell
+Copy-Item journal\prompts-etat\opencode-minimal.json projet\opencode.json   # puis régler baseURL
+$env:OPENCODE_CLE = "…"                      # la clé d'OpenCode vers le modèle
+powershell -ExecutionPolicy Bypass -File .\etape-etat.ps1 projet 00 projet
+Copy-Item projet\.env.example projet\.env    # le formateur remplit .env
+powershell -ExecutionPolicy Bypass -File .\etape-etat.ps1 projet 01 appel-simple
+```
+
+- Windows bloque par défaut les scripts téléchargés : `-ExecutionPolicy Bypass` lève le blocage pour ce seul lancement, sans changer la configuration du poste.
+- La consigne passe à OpenCode par l'entrée standard, pas en argument : Windows PowerShell 5.1 abîme les guillemets d'un argument passé à un programme. Le script force aussi l'UTF-8, sinon les accents arrivent abîmés.
+- `$env:OPENCODE = "C:\chemin\opencode.exe"` choisit le binaire ; `$env:OPENCODE_HOME = "C:\opencode-vide"` donne à OpenCode un dossier personnel vide.
+- Si `python3` n'existe pas, les programmes se lancent avec `py -3` ou `python`.
+- Le script est enregistré en UTF-8 avec BOM : sans cette marque, Windows PowerShell 5.1 lirait ses accents dans l'encodage local. Le garder ainsi en le modifiant.
+
+Essayé le 19 novembre 2026 avec PowerShell 7.7 sur macOS et OpenCode 2.3.2 (étape 00 : fichiers produits, accents intacts, journal en JSON valide). Pas encore essayé sous Windows ni avec Windows PowerShell 5.1.
+
 ## OpenCode au plus simple
 
 Essayé avec OpenCode 2.3.2 le 18 novembre 2026 : avec `OPENCODE_HOME` vide, les variables du script et `opencode-minimal.json` (aucun plugin, aucun serveur MCP, aucune instruction ajoutée, `webfetch` et `websearch` refusés, rien hors du dossier), la requête envoyée au modèle, lue au proxy de journalisation, ne contient que les dix outils d'OpenCode (`edit`, `glob`, `grep`, `question`, `read`, `shell`, `skill`, `subagent`, `write`, `execute`) et ses deux skills intégrés (`opencode`, `report`). Rien de Claude Code, rien du poste.

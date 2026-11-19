@@ -1,6 +1,6 @@
 # opencode-harness-workshop
 
-*English summary.* A hands-on workshop, in French: an agent harness built step by step by [OpenCode](https://opencode.ai) driven by a local model (Qwen3.8 27B on `llama-server`), with every exchange recorded by a logging proxy. The 20 prompts given to OpenCode, the code it wrote, the proxy and the simulated services are all here. Standard library Python only, unless a step says otherwise.
+*English summary.* A hands-on workshop, in French: an agent harness built step by step by [OpenCode](https://opencode.ai) driven by a local model (Qwen3.8 27B on `llama-server`) or a hosted one, with every exchange recorded by a logging proxy. The prompts given to OpenCode (two series: the original one, and a « state » series where each step is a fresh session that reads and updates `ETAT.md`, with secrets in `.env`), the code it wrote, the proxy and the simulated services are all here. Standard library Python only, unless a step says otherwise.
 
 ---
 
@@ -10,19 +10,18 @@ Un atelier pas à pas : on demande à OpenCode, branché sur un modèle local, d
 
 | Dossier | Contenu | Écrit par |
 |---|---|---|
-| `journal/prompts/` | les consignes des étapes 00 à 12 : du premier appel au modèle jusqu'à l'assistant d'astreinte | Claude, pour l'atelier |
+| `journal/prompts/` | les consignes des étapes 00 à 12 (du premier appel au modèle jusqu'à l'assistant d'astreinte) et 19 (Confluence Cloud) ; un README par dossier | Claude, pour l'atelier |
 | `journal/prompts-maquette/` | les consignes des étapes 13 à 18 : la maquette de RAG documentaire | Claude |
+| `journal/prompts-etat/` | les mêmes consignes en série « état » : une étape 00 qui définit le projet, puis une session neuve par étape qui lit et met à jour `ETAT.md`, les secrets dans `.env` | Claude |
 | `projet/` | le code produit par les étapes 00 à 12 : client, prompt système, outil, boucle, journal, ingestion, recherche, assistant documentaire (aussi en LangGraph et en LlamaIndex), outils de supervision, assistant d'incident | OpenCode |
 | `maquette/` | le code produit par les étapes 13 à 18 : connecteurs site, Confluence et Teams, index, assistant, évaluation | OpenCode |
 | `proxy/` | le proxy qui enregistre chaque requête et chaque réponse, avec deux outils pour en faire une page lisible | Claude |
 | `services-simules/` | des imitations des API utilisées : supervision, journaux, tickets, messagerie (`serveur.py`) ; Confluence, Microsoft Graph et un site de base de connaissance (`serveur-docs.py`). Toutes les données sont fictives. Pour les postes sans Qdrant ni reranker : `pseudo-qdrant.py` et `pseudo-reranker.py` (voir plus bas) | Claude |
 | `essais/` | deux essais écrits à côté du code d'OpenCode, sans le modifier | Claude |
 | `etape.sh`, `etape-maquette.sh` | lancent une étape : la consigne, OpenCode, la sortie complète, l'instantané et le diff | Claude |
+| `etape-etat.sh` | lance une étape de la série « état », OpenCode réduit à ses propres outils ; garde une copie de `ETAT.md` | Claude |
 
-Deux consignes ont été précisées après l'atelier ; le code publié vient de leur version précédente ; relancer l'étape le régénère :
-
-- étape 01 (et `projet/AGENTS.md`) : la configuration du moteur d'inférence et la clé d'API passent par des variables d'environnement (`LLM_URL`, `LLM_MODELE`, `LLM_CLE`). Le `projet/etape1_appel.py` publié lit déjà l'adresse et le modèle dans l'environnement, pas encore la clé ;
-- étape 03 : après la demande d'appel d'outil (dont le `content` est vide), le harnais renvoie au modèle un résultat « outil non branché : état inconnu ». L'échange se boucle : on voit si le modèle avoue ne pas savoir au lieu d'inventer. Le `projet/etape3_outil.py` publié s'arrête encore à la demande d'appel.
+Plusieurs consignes ont été précisées après l'atelier (01, 03, 06, 07) et une ajoutée (19) : le détail est dans `journal/prompts/README.md`. Le code publié vient des versions précédentes ; relancer une étape le régénère.
 
 Le code de `projet/` et de `maquette/` est tel qu'OpenCode l'a écrit, à une exception près : les noms propres du contexte d'origine ont été remplacés par des noms neutres (« l'assistant documentaire », « l'équipe infrastructure », l'application « docs »).
 
@@ -30,7 +29,7 @@ Le code de `projet/` et de `maquette/` est tel qu'OpenCode l'a écrit, à une ex
 
 - Un serveur de modèle compatible OpenAI. Dans l'atelier : `llama-server` (llama.cpp) avec Qwen3.8 27B, lancé avec `--jinja`.
 - Pour les étapes 06 à 10 : un serveur d'embedding et un serveur de reranking (`llama-server --embedding --pooling last` et `--reranking`), plus Qdrant.
-- OpenCode ; Python 3.11 ou plus récent.
+- OpenCode, en 1.x ou en 2.x (essayé avec 1.18.10 et 2.3.2) ; Python 3.11 ou plus récent. La 2.x refuse l'option `--pure` de `etape.sh` et `etape-maquette.sh` : utiliser `etape-etat.sh`, qui ne la passe qu'en 1.x.
 
 ## Lancer
 
@@ -39,6 +38,31 @@ Le code de `projet/` et de `maquette/` est tel qu'OpenCode l'a écrit, à une ex
 2. Une étape : `./etape.sh 01 appel-simple` lit `journal/prompts/01-appel-simple.md`, lance OpenCode dans `projet/`, garde sa sortie JSON, un instantané et le diff de ce qui a changé.
 3. Pour la maquette : `python3 services-simules/serveur-docs.py 8914`, puis `./etape-maquette.sh 13 site`, puis les étapes suivantes jusqu'à 18.
 4. Pour lire ce qui s'est passé pendant une étape : `python3 proxy/rendre-html.py journal/appels.jsonl 04-boucle journal/04-boucle.html` (le journal, le nom de l'étape, la page à écrire).
+
+5. La série « état » : `./etape-etat.sh projet 00 projet`, remplir `projet/.env` à partir de `.env.example`, puis `./etape-etat.sh projet 01 appel-simple` et la suite : voir `journal/prompts-etat/README.md`.
+
+### Sous Windows (PowerShell)
+
+Les scripts `etape.sh` et `etape-maquette.sh` demandent un shell Unix. Sous Windows, prendre la série « état » et son script PowerShell :
+
+```powershell
+git clone https://github.com/xigh/opencode-harness-workshop
+cd opencode-harness-workshop
+$env:OPENCODE_CLE = "…"
+powershell -ExecutionPolicy Bypass -File .\etape-etat.ps1 projet 00 projet
+```
+
+Les autres commandes du dépôt sont les mêmes, avec `py -3` (ou `python`) à la place de `python3` et `$env:NOM = "valeur"` à la place de `export NOM=valeur` :
+
+```powershell
+py -3 proxy\proxy-journal.py --amont https://api.scaleway.ai --port 8800 --journal journal\appels.jsonl
+py -3 services-simules\pseudo-qdrant.py --port 8803
+py -3 services-simules\serveur-docs.py 8914
+py -3 services-simules\serveur.py
+$env:QDRANT_URL = "http://127.0.0.1:8803"
+```
+
+Détails et précautions (politique d'exécution, encodage) : `journal/prompts-etat/README.md`.
 
 Les adresses se règlent par variables d'environnement (`LLM_URL`, `EMBED_URL`, `QDRANT_URL`, `RERANK_URL`, `SERVICES_URL`…), avec des valeurs locales par défaut : voir `projet/AGENTS.md` et `maquette/AGENTS.md`.
 
@@ -49,7 +73,7 @@ Les étapes 06 et 07 parlent à Qdrant par son API REST et à un serveur de rera
 - **Le pseudo-Qdrant** : `python3 services-simules/pseudo-qdrant.py --port 8803`. Python standard, le sous-ensemble de l'API REST dont l'atelier se sert (collections, ajout de points, `/points/query`, filtre simple sur le payload), gardé sur disque. Pas d'index : chaque question est comparée à tous les vecteurs. Mesuré en 4 096 dimensions : 0,1 s par question à 1 000 morceaux, 0,9 s à 10 000. Les `ingestion.py` et `recherche.py` publiés s'en servent sans changer une ligne.
 - **Un vrai reranker local, sans rien compiler** : le binaire précompilé de llama.cpp (page des versions de `ggml-org/llama.cpp`) et un modèle GGUF, `llama-server -m bge-reranker-v2-m3-Q8_0.gguf --reranking --port 8802 -c 8192 -ub 8192 -b 8192`. Pour 20 morceaux de 1 500 caractères : bge-reranker-v2-m3 0,8 s sur le GPU, 4,2 à 4,5 s sur le CPU seul (`--device none -ngl 0`) ; Qwen3-Reranker-0.6B 1,3 s sur le GPU, 9 s sur le CPU. Les deux modèles font environ 600 Mo en Q8_0. bge rend un score brut (un logit, négatif possible), Qwen3-Reranker une probabilité entre 0 et 1.
 - **Le pseudo-reranker** : `python3 services-simules/pseudo-reranker.py --port 8802` fait noter chaque morceau de 0 à 10 par un modèle de chat (`RERANK_LLM_URL`, `RERANK_LLM_MODELE`, `RERANK_LLM_CLE`). Environ 2 s pour 20 morceaux avec Qwen3.8 27B chez Scaleway, mais les notes sont grossières (beaucoup d'ex aequo) : de quoi comparer, pas un reranker.
-- **Un vrai Qdrant partagé** : pendant l'atelier, Qdrant 1.20 tourne sur un serveur du formateur (adresse donnée en séance), clé d'API exigée (`QDRANT_CLE`, en-tête `api-key`, donnée en séance). Une collection `demo_droits` y montre le filtre de droits. Une clé pour la salle (jeton JWT, Qdrant en mode `jwt_rbac`) ouvre en écriture `stagiaire01` à `stagiaire10`, et `demo_droits` en lecture ; chacun prend son numéro (`QDRANT_COLLECTION`). Cette clé ne peut ni créer ni supprimer de collection : le formateur les crée, et `--recreer` vide la collection au lieu de la supprimer.
+- **Un vrai Qdrant partagé** : pendant l'atelier, Qdrant 1.20 tourne sur un serveur du formateur (adresse et clé données en séance, `QDRANT_CLE`, en-tête `api-key`). La clé de la salle est courte : un portier la vérifie puis ajoute un jeton JWT (Qdrant en mode `jwt_rbac`) qui ouvre `stagiaire01` à `stagiaire10` en écriture et `demo_droits` en lecture. Chacun prend son numéro (`QDRANT_COLLECTION`). Le jeton ne permet ni de créer ni de supprimer une collection : le formateur les crée ; `--recreer` vide la collection au lieu de la supprimer. La collection `demo_droits` montre le filtre de droits.
 - **Sans reranking** : la consigne 07 rend l'étage 3 facultatif (`RERANK_URL=`) ; on garde les cinq premiers de la recherche vectorielle.
 
 ## Confluence Cloud (étape 19)
@@ -67,9 +91,10 @@ Les PDF ne sont pas fournis. Mettez vos propres documents publics dans `corpus/p
 
 ## Pièges rencontrés pendant l'atelier
 
+- `opencode run "/init"` : en 1.18.10, la commande n'est pas reconnue (le modèle a écrit un `CLAUDE.md` en anglais) ; en 2.3.2, elle écrit un `AGENTS.md` en anglais. L'étape 00 de la série « état » fait ce travail en clair.
 - `opencode run` attend l'entrée standard : la fermer (`< /dev/null`), sinon il ne démarre jamais.
 - Déclarer `small_model`, sinon les titres de session partent vers le modèle par défaut du poste.
-- OpenCode injecte dans son prompt les compétences d'autres outils installés sur le poste : `OPENCODE_DISABLE_CLAUDE_CODE=1 OPENCODE_DISABLE_EXTERNAL_SKILLS=1` (déjà dans les scripts).
+- OpenCode injecte dans son prompt les compétences d'autres outils installés sur le poste : `OPENCODE_DISABLE_CLAUDE_CODE=1 OPENCODE_DISABLE_EXTERNAL_SKILLS=1` en 1.x ; en 2.x, `OPENCODE_DISABLE_CLAUDE_CODE`, `OPENCODE_DISABLE_CLAUDE_CODE_PROMPT` et `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS` (déjà dans les scripts). Avec en plus un dossier personnel vide et `journal/prompts-etat/opencode-minimal.json`, la requête envoyée au modèle ne contient que les outils et les deux skills intégrés d'OpenCode : vérifié au proxy.
 - En mode `--auto`, l'agent a inspecté les processus de la machine pendant une étape : pour une démonstration, le lancer dans un conteneur ou une machine virtuelle.
 - Pendant la maquette, OpenCode a modifié le test d'évaluation jusqu'à le faire passer, sans toucher à l'assistant : relire aussi le code de l'évaluation.
 - La lecture des droits de Confluence traite une erreur 404 comme « page publique » : un défaut ouvert, à corriger avant tout usage réel.
