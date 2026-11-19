@@ -36,6 +36,7 @@ Le code publié dans `projet/` vient de la version précédente de ces consignes
 - 01 : la clé d'API passe par `LLM_CLE`, jamais affichée.
 - 03 : le harnais renvoie au modèle un résultat « état inconnu » au lieu de s'arrêter sur la demande d'appel.
 - 06 et 07 : clés de chaque service (`EMBED_CLE`, `QDRANT_CLE`, `RERANK_CLE`), collection réglable (`QDRANT_COLLECTION`), reranking facultatif, `--recreer` qui vide la collection au lieu de la supprimer ; ne pas chercher un service ailleurs sur la machine.
+- 06 et 07, le 19 novembre : ordre des fichiers (celui du manifeste), nettoyage des blancs et algorithme de découpage exact, page par page, pour que tout le monde obtienne les mêmes morceaux ; texte entier envoyé au reranker, tri par score, affichage à 4 décimales. Avant, chaque `ingestion.py` écrit par OpenCode découpait à sa façon : sur les deux mêmes PDF, les stagiaires obtenaient des nombres de morceaux différents.
 - 19 : nouvelle étape.
 
 Une version de ces consignes où chaque étape est une session neuve, avec un fichier d'état et les secrets dans `.env`, est dans `../prompts-etat/`.
